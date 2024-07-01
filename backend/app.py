@@ -1,141 +1,9 @@
-from flask import Flask, jsonify, request
-from sqlalchemy import Column, Integer, Float, String, ForeignKey
-from flask_jwt_extended import JWTManager, jwt_required, create_access_token, get_jwt_identity
-from sqlalchemy.orm import relationship
-from flask_cors import CORS
-from flask_sqlalchemy import SQLAlchemy
+from flask_jwt_extended import jwt_required, create_access_token, get_jwt_identity
+from models import User, Expense, Category, Income, Budget
+from config import db
+from config import app
 import datetime
-import os
-
-app = Flask(__name__)
-CORS(app)
-basedir = os.path.abspath(os.path.dirname(__file__))
-app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///" + os.path.join(basedir, "ExpenseTrackerDB.db")
-app.config["JWT_SECRET_KEY"] = 'super_secret'
-db = SQLAlchemy(app)
-jwt = JWTManager(app)
-
-
-class User(db.Model):
-    __tablename__ = "users"
-
-    username = Column(String, primary_key=True, nullable=False, unique=True)
-    first_name = Column(String)
-    last_name = Column(String)
-    email = Column(String, unique=True, nullable=False)
-    password = Column(String, nullable=False)
-    profile = Column(String)  # Change To path For the Future
-
-    categories = relationship("Category", back_populates="user")
-    expenses = relationship("Expense", back_populates="user")
-    incomes = relationship("Income", back_populates="user")
-    budgets = relationship("Budget", back_populates="user")
-
-    def to_json(self):
-        return {
-            "username": self.username,
-            "first_name": self.first_name,
-            "last_name": self.last_name,
-            "email": self.email,
-            "password": self.password,
-            "profile": self.profile,
-        }
-
-
-class Category(db.Model):
-    __tablename__ = "categories"
-
-    id = Column(Integer, primary_key=True)
-    name = Column(String, nullable=False)
-    description = Column(String)
-    total_amount = Column(Float)
-    user_username = Column(String, ForeignKey('users.username'))
-
-    user = relationship("User", back_populates="categories")
-    expenses = relationship("Expense", back_populates="category")
-
-    def to_json(self):
-        return {
-            "id": self.id,
-            "name": self.name,
-            "description": self.description,
-            "total_amount": self.total_amount,
-            "username": self.user_username
-        }
-
-
-class Expense(db.Model):
-    __tablename__ = "expenses"
-
-    id = Column(Integer, primary_key=True)
-    name = Column(String)
-    amount = Column(Float, nullable=False)
-    description = Column(String)
-    date = Column(String)
-    category_id = Column(Integer, ForeignKey('categories.id'))
-    user_username = Column(String, ForeignKey('users.username'))
-
-    category = relationship("Category", back_populates="expenses")
-    user = relationship("User", back_populates="expenses")
-
-    def to_json(self):
-        return {
-            "id": self.id,
-            "name": self.name,
-            "amount": self.amount,
-            "description": self.description,
-            "date": self.date,
-            "categoryId": self.category_id,
-            "username": self.user_username
-        }
-
-
-class Income(db.Model):
-    __tablename__ = "incomes"
-
-    id = Column(Integer, primary_key=True)
-    name = Column(String)
-    amount = Column(Float, nullable=False)
-    date = Column(String)
-    description = Column(String)
-    user_username = Column(String, ForeignKey('users.username'))
-
-    user = relationship("User", back_populates="incomes")
-
-    def to_json(self):
-        return {
-            "id": self.id,
-            "name": self.name,
-            "amount": self.amount,
-            "date": self.date,
-            "description": self.description,
-            "username": self.user_username
-        }
-
-
-class Budget(db.Model):
-    __tablename__ = "budgets"
-
-    id = Column(Integer, primary_key=True)
-    name = Column(String)
-    amount = Column(Integer, nullable=False)
-    description = Column(String)
-    start_date = Column(String)
-    end_date = Column(String)
-    username = Column(String, ForeignKey("users.username"))
-
-    user = relationship("User", back_populates="budgets")
-
-    def to_json(self):
-        return {
-            "id": self.id,
-            "name": self.name,
-            "amount": self.amount,
-            "description": self.description,
-            "start_date": self.start_date,
-            "end_date": self.end_date,
-            "username": self.username,
-        }
+from flask import request, jsonify
 
 
 @app.cli.command("db_create")
@@ -226,8 +94,7 @@ def seed_db():
 
 @app.route("/")
 def home():
-    return jsonify(message="expenomy main server")
-
+    return "<h1> expenomy main server </h1>"
 
 # @app.route("/expenses", methods=['GET'])
 # def get_expenses():
@@ -246,15 +113,27 @@ def home():
 @app.route("/register", methods=["POST"])
 def register():
     username = request.form['username']
+    email = request.form['email']
     test = User.query.filter_by(username=username).first()
+    test_email = User.query.filter_by(email=email).first()
+
     if test:
-        return jsonify(message="This user already exists !!"), 409
-    else:
-        password = request.form['password']
-        user = User(username=username, password=password)
-        db.session.add(user)
-        db.session.commit()
-        return jsonify(success=1), 201
+        return jsonify(message="This username already exists !!"), 409
+    if test_email:
+        return jsonify(message="email already exists !!")
+
+    password = request.form['password']
+    first_name = request.form['first_name']
+    last_name = request.form['last_name']
+    user = User(username=username,
+                password=password,
+                first_name=first_name,
+                last_name=last_name,
+                email=email)
+
+    db.session.add(user)
+    db.session.commit()
+    return jsonify(success=1), 201
 
 
 @app.route("/login", methods=["POST"])
@@ -281,11 +160,21 @@ def login():
 #         return jsonify(user)
 #     else:
 #         return no_such_url(f"no such username as {username}")
+@app.route("/<username>/delete", methods=["DELETE"])
+def delete_user(username):
+    user = User.query.filter_by(username=username).first()
+    if user:
+        db.session.delete(user)
+        db.session.commit()
+        return jsonify(success=1)
+
+    else:
+        return jsonify(message="user doesn't exist")
 
 
 @app.route("/<username>/dashboard")
 @jwt_required()
-def user_expenses(username):
+def user_dashboard(username):
     current_user = get_jwt_identity()
     if current_user != username:
         return jsonify(message="not authorized"), 403
@@ -319,6 +208,24 @@ def get_categories(username):
         return jsonify(categories=user_category)
 
 
+@app.route("/<username>/categories/create", methods=['POST'])
+@jwt_required()
+def create_categories(username):
+    current_user = get_jwt_identity()
+    if current_user != username:
+        return jsonify(message="not authorized ")
+
+    name = request.form['name']
+    description = request.form['description']
+    new_category = Category(name=name,
+                            description=description,
+                            user_username=username)
+
+    db.session.add(new_category)
+    db.session.commit()
+    return jsonify(success=1)
+
+
 @app.route("/<username>/categories/update/<category_id>", methods=['POST'])
 @jwt_required()
 def update_category(username: str, category_id: int):
@@ -350,34 +257,11 @@ def delete_category(username: str, category_id: int):
 
     category = Category.query.filter_by(id=category_id, user_username=username).first()
     if category:
-        if username == category.user_username and category.id == category_id:
-            db.session.delete(category)
-            db.session.commit()
-            return jsonify(success=1)
-        else:
-            return jsonify(message="not success")
+        db.session.delete(category)
+        db.session.commit()
+        return jsonify(success=1)
     else:
-        return jsonify(message='not authorized ')
-
-
-@app.route("/<username>/categories/create", methods=['POST'])
-@jwt_required()
-def create_categories(username):
-    current_user = get_jwt_identity()
-    if current_user != username:
-        return jsonify(message="not authorized ")
-
-    name = request.form['name']
-    description = request.form['description']
-    new_category = Category(name=name,
-                            description=description,
-                            user_username=username)
-
-    db.session.add(new_category)
-    db.session.commit()
-    return jsonify(success=1)
-
-
+        return jsonify(message="not success")
 
 
 @app.route("/<username>/expenses")
@@ -389,7 +273,7 @@ def get_expenses(username):
 
     expenses = Expense.query.filter_by(user_username=username).all()
     expense = list(map(lambda x: x.to_json(), expenses))
-    return jsonify(expense)
+    return jsonify(expenses=expense)
 
 
 @app.route("/<username>/expenses/update/<id_>", methods=['PUT'])
@@ -397,7 +281,8 @@ def get_expenses(username):
 def update_expenses(username, id_: int):
     current_user = get_jwt_identity()
     if current_user != username:
-        return jsonify(message='not authorized')
+        return jsonify(message='not authorized'), 403
+
     expenses = Expense.query.filter_by(user_username=username, id=id_).first()
     if expenses:
         if request.form['name']:
@@ -411,7 +296,7 @@ def update_expenses(username, id_: int):
         db.session.commit()
         return jsonify(success=1)
     else:
-        return jsonify(message="not found")
+        return jsonify(message="not found"), 404
 
 
 @app.route("/<string:username>/expenses/delete/<int:id_>", methods=["DELETE"])
@@ -444,13 +329,11 @@ def create_expense(username):
     amount = float(request.form['amount'])
     description = request.form['description']
     date = request.form['date']
-    category_id = int(request.form['category_id'])
     user_username = username
     new_expense = Expense(name=name,
                           amount=amount,
                           description=description,
                           date=date,
-                          category_id=category_id,
                           user_username=user_username)
 
     db.session.add(new_expense)
@@ -458,7 +341,7 @@ def create_expense(username):
     return jsonify(success=1)
 
 
-@app.route("/<username>/budgets")
+@app.route("/<username>/budgets", methods=['GET'])
 @jwt_required()
 def get_budgets(username):
     current_user = get_jwt_identity()
@@ -467,7 +350,7 @@ def get_budgets(username):
 
     budgets = Budget.query.filter_by(username=username).all()
     budget = list(map(lambda x: x.to_json(), budgets))
-    return jsonify(budget)
+    return jsonify(budgets=budget)
 
 
 @app.route("/<username>/budgets/create", methods=['POST'])
@@ -537,7 +420,7 @@ def delete_budget(username, budget_id: int):
         return jsonify(message="not found")
 
 
-@app.route("/<username>/incomes")
+@app.route("/<username>/incomes", methods=['GET'])
 @jwt_required()
 def get_incomes(username):
     current_user = get_jwt_identity()
@@ -545,11 +428,8 @@ def get_incomes(username):
         return jsonify(message="not authorized ")
 
     incomes = Income.query.filter_by(user_username=username).all()
-    if incomes:
-        income = list(map(lambda x: x.to_json(), incomes))
-        return jsonify(income)
-    else:
-        return jsonify(message="not found")
+    income = list(map(lambda x: x.to_json(), incomes))
+    return jsonify(incomes=income)
 
 
 @app.route("/<username>/incomes/create", methods=['POST'])
@@ -610,8 +490,10 @@ def delete_incomes(username, income_id: int):
 
 
 @app.errorhandler(404)
-def no_such_url(e):
-    return jsonify(error=e), 404
+def not_found(error):
+    response = jsonify({'error': 'Not found'})
+    response.status_code = 404
+    return response
 
 
 if __name__ == "__main__":
