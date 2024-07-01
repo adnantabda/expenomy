@@ -537,6 +537,78 @@ def delete_budget(username, budget_id: int):
         return jsonify(message="not found")
 
 
+@app.route("/<username>/incomes")
+@jwt_required()
+def get_incomes(username):
+    current_user = get_jwt_identity()
+    if current_user != username:
+        return jsonify(message="not authorized ")
+
+    incomes = Income.query.filter_by(user_username=username).all()
+    if incomes:
+        income = list(map(lambda x: x.to_json(), incomes))
+        return jsonify(income)
+    else:
+        return jsonify(message="not found")
+
+
+@app.route("/<username>/incomes/create", methods=['POST'])
+def create_incomes(username):
+    name = request.form['name']
+    amount = float(request.form['amount'])
+    description = request.form['description']
+    date = request.form['date']
+
+    new_income = Income(name=name,
+                        amount=amount,
+                        date=date,
+                        description=description,
+                        user_username=username)
+
+    db.session.add(new_income)
+    db.session.commit()
+    return jsonify(success=1)
+
+
+@app.route("/<username>/incomes/update/<int:income_id>", methods=['PUT'])
+@jwt_required()
+def update_incomes(username, income_id: int):
+    current_user = get_jwt_identity()
+    if current_user != username:
+        return jsonify(message="not authorized ")
+
+    income = Income.query.filter_by(user_username=username, id=income_id).first()
+    if income:
+        income.name = request.form['name']
+        income.description = request.form['description']
+        income.amount = request.form['amount']
+        income.date = request.form['date']
+
+        db.session.commit()
+        return jsonify(success=1)
+    else:
+        return jsonify(message="not found")
+
+
+@app.route("/<username>/incomes/delete/<int:income_id>", methods=['DELETE'])
+@jwt_required()
+def delete_incomes(username, income_id: int):
+    current_user = get_jwt_identity()
+    if current_user != username:
+        return jsonify(message="not authorized ")
+
+    income = Income.query.filter_by(user_username=username, id=income_id).first()
+    if income:
+        if income.user_username == username and income.id == income_id:
+            db.session.delete(income)
+            db.session.commit()
+            return jsonify(success=1)
+        else:
+            return jsonify(message="not allowed")
+    else:
+        return jsonify(message="doesn't exist")
+
+
 @app.errorhandler(404)
 def no_such_url(e):
     return jsonify(error=e), 404
