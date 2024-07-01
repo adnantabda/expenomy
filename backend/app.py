@@ -319,7 +319,7 @@ def get_categories(username):
         return jsonify(categories=user_category)
 
 
-@app.route("/<username>/categories/<category_id>", methods=['POST'])
+@app.route("/<username>/categories/update/<category_id>", methods=['POST'])
 @jwt_required()
 def update_category(username: str, category_id: int):
     current_user = get_jwt_identity()
@@ -339,6 +339,45 @@ def update_category(username: str, category_id: int):
         return jsonify(success=1), 202
     else:
         return jsonify(message="category doesn't exit"), 404
+
+
+@app.route("/<string:username>/categories/delete/<int:category_id>", methods=['DELETE'])
+@jwt_required()
+def delete_category(username: str, category_id: int):
+    current_user = get_jwt_identity()
+    if current_user != username:
+        return jsonify(message="not authorized !!")
+
+    category = Category.query.filter_by(id=category_id, user_username=username).first()
+    if category:
+        if username == category.user_username and category.id == category_id:
+            db.session.delete(category)
+            db.session.commit()
+            return jsonify(success=1)
+        else:
+            return jsonify(message="not success")
+    else:
+        return jsonify(message='not authorized ')
+
+
+@app.route("/<username>/categories/create", methods=['POST'])
+@jwt_required()
+def create_categories(username):
+    current_user = get_jwt_identity()
+    if current_user != username:
+        return jsonify(message="not authorized ")
+
+    name = request.form['name']
+    description = request.form['description']
+    new_category = Category(name=name,
+                            description=description,
+                            user_username=username)
+
+    db.session.add(new_category)
+    db.session.commit()
+    return jsonify(success=1)
+
+
 
 
 @app.route("/<username>/expenses")
@@ -390,6 +429,110 @@ def delete_expense(username, id_: int):
             return jsonify(success=1)
         else:
             return jsonify(message="not successful")
+    else:
+        return jsonify(message="not found")
+
+
+@app.route("/<username>/expenses/create", methods=['POST'])
+@jwt_required()
+def create_expense(username):
+    current_user = get_jwt_identity()
+    if current_user != username:
+        return jsonify(message="not authorized ")
+
+    name = request.form['name']
+    amount = float(request.form['amount'])
+    description = request.form['description']
+    date = request.form['date']
+    category_id = int(request.form['category_id'])
+    user_username = username
+    new_expense = Expense(name=name,
+                          amount=amount,
+                          description=description,
+                          date=date,
+                          category_id=category_id,
+                          user_username=user_username)
+
+    db.session.add(new_expense)
+    db.session.commit()
+    return jsonify(success=1)
+
+
+@app.route("/<username>/budgets")
+@jwt_required()
+def get_budgets(username):
+    current_user = get_jwt_identity()
+    if current_user != username:
+        return jsonify(message="not authorized ")
+
+    budgets = Budget.query.filter_by(username=username).all()
+    budget = list(map(lambda x: x.to_json(), budgets))
+    return jsonify(budget)
+
+
+@app.route("/<username>/budgets/create", methods=['POST'])
+@jwt_required()
+def create_budgets(username):
+    current_user = get_jwt_identity()
+    if current_user != username:
+        return jsonify(message="not authorized ")
+
+    name = request.form['name']
+    description = request.form['description']
+    start_date = request.form['start_date']
+    end_date = request.form['end_date']
+    amount = request.form['amount']
+
+    new_budget = Budget(name=name,
+                        username=username,
+                        description=description,
+                        start_date=start_date,
+                        end_date=end_date,
+                        amount=amount)
+
+    db.session.add(new_budget)
+    db.session.commit()
+    return jsonify(success=1)
+
+
+@app.route("/<username>/budgets/update/<int:budget_id>", methods=['PUT'])
+@jwt_required()
+def update_budget(username, budget_id: int):
+    current_user = get_jwt_identity()
+    if current_user != username:
+        return jsonify(message="not authorized ")
+
+    budget = Budget.query.filter_by(username=username, id=budget_id).first()
+    if budget:
+        if budget.id == budget_id and budget.username == username:
+            budget.name = request.form['name']
+            budget.description = request.form['description']
+            budget.amount = request.form['amount']
+            budget.start_date = request.form['start_date']
+            budget.end_date = request.form['end_date']
+            db.session.commit()
+            return jsonify(success=1)
+        else:
+            return jsonify(message="can't access ")
+    else:
+        return jsonify(message="not found")
+
+
+@app.route("/<username>/budgets/delete/<int:budget_id>", methods=['DELETE'])
+@jwt_required()
+def delete_budget(username, budget_id: int):
+    current_user = get_jwt_identity()
+    if current_user != username:
+        return jsonify(message="not authorized ")
+
+    budget = Budget.query.filter_by(username=username, id=budget_id).first()
+    if budget:
+        if budget.id == budget_id and budget.username == username:
+            db.session.delete(budget)
+            db.session.commit()
+            return jsonify(success=1)
+        else:
+            return jsonify(message="not success")
     else:
         return jsonify(message="not found")
 
