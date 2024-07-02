@@ -5,12 +5,12 @@ import { url } from "./Login";
 
 const tagLine = ["Record Your finance", "Take a close look at your Expenses", "Have a financial freedom"]
 
-function Header(){
+function Header({name}){
     const randomTag =Math.floor(Math.random() * tagLine.length)
     // console.log(randomTag)
     return (
         <div>
-            <h2>Adnan Tahir</h2>
+            <h2>{name}</h2>
             <p>{tagLine[randomTag]}</p>
         </div>
     )
@@ -33,7 +33,6 @@ function Summary(){
                 <h3>Total Income</h3>
                 <p>$500</p>
             </div>
-
         </div>
     )
 }
@@ -49,30 +48,13 @@ function AddChoice(){
     )
 }
 
-function ListExpenses(){
-    const [expenses, setExpenses] = useState([])
-    const location = useLocation();
-    const {username, access_token} = location.state || {};
-
-    useEffect(()=>{
-        fetch(`${url}${username}/expenses`, {
-            method: "GET",
-            headers: {
-                'Authorization': `Bearer ${access_token}`,
-            }
-        }).then((response)=>response.json()).then((data)=>{
-                setExpenses(data.expenses)
-            console.log(data)
-        })
-
-    }, [])
-
+function ListExpenses({expenses}){
     return (
         <div className="expenses">
             <h2>Expenses</h2>
             <div>
                 <ul>
-                    {expenses.map((expense)=><li>{JSON.stringify(expense.description)}</li>)}
+                    {expenses.map((expense)=><li key={expense.id}>{expense.description} {expense.id}</li>)}
                 </ul>
             </div>
         </div>
@@ -81,13 +63,37 @@ function ListExpenses(){
 }
 
 export default function SuccessLogin() {
+    const [expenses, setExpenses] = useState(["name", "Twp", "TE"])
+    const [name , setName] = useState("")
+    const location = useLocation();
+    const {username, access_token} = location.state || {};
+
+    useEffect(()=>{
+        console.log(access_token)
+        console.log(username)
+        fetch(`${url}/${username}/dashboard`, {
+            method: "GET",
+            headers: {
+                'Authorization': `Bearer ${access_token}`,
+            }
+        }).then((response)=>response.json()).then((data)=>{
+            if (data.expenses == undefined){
+                expenses = ['name', 1, 4]
+            }else{
+                setExpenses(data.expenses)
+                setName(username)
+            }
+        })
+
+    }, [])
+
 
   return (
-    <div>
-        <Header />
+    <div className="dashboard">
+        <Header name={name}/>
         <Summary />
         <AddChoice />
-        <ListExpenses />
+        <ListExpenses expenses={expenses}/>
     </div>
   );
 }
