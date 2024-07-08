@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import "./Login.css"
+import "./autho.css"
+import Copyright from "./copyright";
 
 export let access_token = "";
 export let username = "";
@@ -93,6 +94,7 @@ export default function Login() {
 
         </div>
       </form>
+      <Copyright />
     </div>
   );
 }
