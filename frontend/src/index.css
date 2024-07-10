@@ -1,0 +1,51 @@
+body {
+  margin: 0;
+  min-width: 320px;
+  background-color: #f8f5f5d0;
+  max-height: 100vh;
+}
+
+h1 {
+  font-size: 3em;
+  line-height: 1.1;
+  text-align: center;
+}
+
+button:active{
+  transform: scale(0.9);
+}
+
+
+
+@media (prefers-color-scheme: light) {
+  :root {
+    color: #213547;
+    background-color: #ffffff;
+  }
+  a:hover {
+    color: #747bff;
+  }
+  button {
+    background-color: #f9f9f9;
+  }
+}
+
+.copyright{
+  padding: 0;
+  margin: 12px;
+}
+
+.copyright p{
+  margin: 0;
+  padding: 0;
+}
+
+.copyright span{
+  font-family: 'Lucida Sans', 'Lucida Sans Regular', 'Lucida Grande', 'Lucida Sans Unicode', Geneva, Verdana, sans-serif;
+  color: #1b80df;
+  font-weight: 600;
+}
+
+li{
+  list-style: none;
+}
