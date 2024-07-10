@@ -1,0 +1,19 @@
+.what-you-can-do, .usage{
+    margin: 12px;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+}
+
+.what-you-can-do div, .usage div{
+    border: 1px solid aqua;
+    border-radius: 12px;
+    text-align: center;
+    
+}
+
+
+.usage div div{
+    border: 1px solid transparent;
+
+}
