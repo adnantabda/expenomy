@@ -7,16 +7,26 @@ export let access_token = "";
 export let username = "";
 export const url = "http://127.0.0.1:5000";
 
-export function Logo({ width, height }) {
+export function Logo({ width, height, path }) {
   return (
     <img
-      src="/Logo.png"
+      src={path}
       alt="Logo of Expenenomy"
       width={width}
       height={height}
     />
   );
 }
+
+export function Loading(){
+  return (
+    <div>
+      <p>Loading......</p>
+    </div>
+  )
+}
+
+
 
 export default function Login() {
   const [formData, setFormData] = useState({
@@ -25,8 +35,9 @@ export default function Login() {
   });
 
   const [message, setMessage] = useState("");
-  const history = useNavigate();
+  const [error, setError] = useState(null)
 
+  const history = useNavigate();
   const handleChange = (e) => {
     setFormData({
       ...formData,
@@ -45,6 +56,7 @@ export default function Login() {
     fetch(`${url}/login`, {
       method: "POST",
       body: formDataToSend,
+      mode : "cors"
     })
       .then((response) => response.json())
       .then((json) => {
@@ -62,13 +74,16 @@ export default function Login() {
             setMessage(json.message);
           }
         }
+      }).catch((error)=>{
+        setError(error)
       });
   };
+  
 
   return (
     <div className="form-container">
       <div className="login-header">
-        <Logo width={"100px"} height={"100px"} />
+        <Logo width={"100px"} height={"100px"} path={"/Logo.png"} />
         <h2>Login</h2>
       </div>
       <form onSubmit={handleSubmit}>
@@ -88,10 +103,9 @@ export default function Login() {
           onChange={handleChange}
         />
 
-        <button type="submit">Submit</button>
+        <button type="submit" onClick={handleSubmit}>Submit</button>
         <div className="error-message">
-        <p >{message}</p>
-
+        <p >{error ? "Network error" : message}</p>
         </div>
       </form>
       <Copyright />
