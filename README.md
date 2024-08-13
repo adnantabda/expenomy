@@ -13,18 +13,6 @@ Expenomy is an expense tracker web application built with React, Flask and SQLit
 
 The Expenomy backend is the core API and database management system for the Expenomy application, a tool designed for managing and tracking personal expenses. This backend is built using Python with Flask, and it handles the main operations such as user authentication, expense tracking, and data management. 
 
-## Table of Contents
-
-- [Features](#features)
-- [Project Structure](#project-structure)
-- [Installation](#installation)
-- [Configuration](#configuration)
-- [Usage](#usage)
-- [API Endpoints](#api-endpoints)
-- [Models](#models)
-- [Contributing](#contributing)
-- [License](#license)
-- [Contact](#contact)
 
 ## Features
 
